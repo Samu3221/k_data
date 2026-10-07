@@ -16,3 +16,4 @@ sha2 = { version = "0.10", features = ["oid"] }
 rand_core = { version = "0.6", features = ["getrandom"] }
 base64 = "0.22"
 tungstenite = "0.30.0"
+chrono-tz = "0.10.4"
