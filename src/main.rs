@@ -11,14 +11,22 @@ use tokio_tungstenite::{connect_async, tungstenite::Message}; // for websockets 
 use crate::websockets::run_sockets; // websocket connections
 
 use k_data::auth::authend::authentication::sign; // for signing and authentication of messages
+use k_data::operations::sql_operations::functions::{
+    insert_into_market_ticker, insert_into_orderbook_delta, insert_into_orderbook_snapshot,
+    insert_into_trades,
+};
+use k_data::operations::ticker_operations::ticker_functions::get_up_down_ticker;
 
 use chrono; // for adding timestamp to requests and adding auto adding the right ticker
+
+use sqlx::postgres;
 
 static URL: &str = "wss://external-api-ws.kalshi.com/trade-api/ws/v2"; // the url
 
 #[tokio::main]
 async fn main() {
-    run_sockets("KXBTC15M-26OCT050830-30").await;
+    let market_ticker: String = get_up_down_ticker("KXBTC15M");
+    run_sockets(&market_ticker, "kalshi").await;
 }
 
 pub mod websockets {
@@ -38,7 +46,10 @@ pub mod websockets {
     }
 
     // make web socket struct where we run the operation out of wif the struct is dropped then we end connection and start a new one
-    pub async fn run_sockets(market_ticker: &str) {
+    pub async fn run_sockets(market_ticker: &str, database_name: &str) {
+        let url: String = format!("postgresql://postgres@localhost:5432/{}", database_name);
+        let mut conn: sqlx::Pool<sqlx::Postgres> = postgres::PgPool::connect(&url).await.unwrap();
+
         let api_key = obtain_api_key();
 
         let timestamp = chrono::DateTime::timestamp_millis(&chrono::Utc::now());
@@ -66,25 +77,25 @@ pub mod websockets {
             }
         };
 
-        // let subscription_msg = json!(
-        //     {
-        //         "id": 1,
-        //         "cmd": "subscribe",
-        //         "params": {
-        //             "channels": ["orderbook_delta"],
-        //             "market_ticker": market_ticker,
-        //         },
-        //     }
-        // );
-        // println!("{}",subscription_msg);
-        // match ws
-        //     .send(Message::Text(subscription_msg.to_string().into()))
-        //     .await
-        // {
-        //     // sending the auth message
-        //     Ok(_) => (),
-        //     Err(e) => panic!("{e}"),
-        // }
+        let subscription_msg = json!(
+            {
+                "id": 1,
+                "cmd": "subscribe",
+                "params": {
+                    "channels": ["orderbook_delta"],
+                    "market_ticker": market_ticker,
+                },
+            }
+        );
+
+        match ws
+            .send(Message::Text(subscription_msg.to_string().into()))
+            .await
+        {
+            // sending the auth message
+            Ok(_) => (),
+            Err(e) => panic!("{e}"),
+        }
 
         let subscription_msg = json!(
             {
@@ -96,6 +107,7 @@ pub mod websockets {
                 },
             }
         );
+
         match ws
             .send(Message::Text(subscription_msg.to_string().into()))
             .await
@@ -105,30 +117,55 @@ pub mod websockets {
             Err(e) => panic!("{e}"),
         }
 
-        // let subscription_msg = json!(
-        //     {
-        //         "id": 2,
-        //         "cmd": "subscribe",
-        //         "params": {
-        //             "channels": ["trade"],
-        //             "market_ticker": market_ticker
-        //         }
-        //     }
-        // );
-        // match ws
-        //     .send(Message::Text(subscription_msg.to_string().into()))
-        //     .await
-        // {
-        //     // sending the auth message
-        //     Ok(_) => (),
-        //     Err(e) => panic!("{e}"),
-        // }
+        let subscription_msg = json!(
+            {
+                "id": 2,
+                "cmd": "subscribe",
+                "params": {
+                    "channels": ["trade"],
+                    "market_ticker": market_ticker
+                }
+            }
+        );
+
+        match ws
+            .send(Message::Text(subscription_msg.to_string().into()))
+            .await
+        {
+            // sending the auth message
+            Ok(_) => (),
+            Err(e) => panic!("{e}"),
+        }
 
         // here we write all new prices that are not the same as those already placed
         // !!! be very careful of null values need to get that handled
         // will get handled when  we introduce match
+
         while let Some(Ok(message)) = ws.next().await {
-            println!("{}", message)
+            if let tokio_tungstenite::tungstenite::Message::Text(message_string) = message {
+                let parsed_message: serde_json::Value = match serde_json::from_str(&message_string)
+                {
+                    Ok(msg) => msg,
+                    Err(_) => panic!("Panicked because parsing of incoming message failed"), // panics because that kills the thread locally and try again
+                };
+                let message_type: &serde_json::Value = &parsed_message["type"];
+                let parsed_msg = &parsed_message["msg"];
+                match message_type.as_str() {
+                    Some("trade") => {
+                        println!("trade {parsed_msg}")
+                    }
+                    Some("ticker") => {
+                        println!("ticker {parsed_msg}")
+                    }
+                    Some("orderbook_delta") => {
+                        println!("delta {parsed_msg}")
+                    }
+                    Some("orderbook_snapshot") => {
+                        println!("{parsed_msg}")
+                    }
+                    _ => (),
+                }
+            }
         }
     }
 }
@@ -139,6 +176,7 @@ mod tests {
     #[tokio::main]
     #[test]
     async fn testy() {
-        websockets::run_sockets("KXBTC15M-26OCT050915-15").await;
+        let market_ticker: String = get_up_down_ticker("KXBTC15M");
+        websockets::run_sockets(&market_ticker, "kalshi").await;
     }
 }

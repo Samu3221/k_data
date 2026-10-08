@@ -1,76 +1,139 @@
-// here we get the right ticker for the 
+// here we get the right ticker for the
 use chrono::Utc;
 use chrono::{Datelike, Timelike};
 use chrono_tz::America::New_York;
 
-
-
 pub mod ticker_functions {
-    
+
     use super::*;
 
-    pub fn get_up_down_ticker(series: &str) -> String{
-        // let today: chrono::prelude::DateTime<chrono::prelude::Local> = Utc::now().with_timezone(&New_York); // chrono::local 
+    pub fn get_up_down_ticker(series: &str) -> String {
+        // let today: chrono::prelude::DateTime<chrono::prelude::Local> = Utc::now().with_timezone(&New_York); // chrono::local
 
         let today: chrono::prelude::DateTime<chrono_tz::Tz> = Utc::now().with_timezone(&New_York);
 
-
-
         let month: &str = get_month(&today);
         let minute: u32 = today.minute();
-        let hour: u32 = today.hour();
+        let mut hour: u32 = today.hour();
         let date = if today.day() > 10 {
-            format!("{}",today.day())
+            format!("{}", today.day())
         } else {
-            format!("0{}",today.day())
+            format!("0{}", today.day())
         };
 
-
         let ticker_name: String = if minute < 15 {
-
-            let ticker: String = if  hour < 10 {
-                format!("{}-{}{}{}0{}{}-{}",series, today.year() - 2000, month, date, hour, 15, 15)
+            let ticker: String = if hour < 10 {
+                format!(
+                    "{}-{}{}{}0{}{}-{}",
+                    series,
+                    today.year() - 2000,
+                    month,
+                    date,
+                    hour,
+                    15,
+                    15
+                )
             } else {
-                format!("{}-{}{}{}{}{}-{}",series, today.year() - 2000, month, date, hour, 15, 15)
-            };
-
-            ticker 
-        } else if minute >= 15  && minute < 30 {
-
-            let ticker: String = if  hour < 10 {
-                format!("{}-{}{}{}0{}{}-{}",series, today.year() - 2000, month, date, hour, 30, 30)
-            } else {
-                format!("{}-{}{}{}{}{}-{}",series, today.year() - 2000, month, date, hour, 30, 30)
+                format!(
+                    "{}-{}{}{}{}{}-{}",
+                    series,
+                    today.year() - 2000,
+                    month,
+                    date,
+                    hour,
+                    15,
+                    15
+                )
             };
 
             ticker
-        } else if minute >= 30  && minute < 45 {
-
-            let ticker: String = if  hour < 10 {
-                format!("{}-{}{}{}0{}{}-{}",series, today.year() - 2000, month, date, hour, 45, 45)
+        } else if minute >= 15 && minute < 30 {
+            let ticker: String = if hour < 10 {
+                format!(
+                    "{}-{}{}{}0{}{}-{}",
+                    series,
+                    today.year() - 2000,
+                    month,
+                    date,
+                    hour,
+                    30,
+                    30
+                )
             } else {
-                format!("{}-{}{}{}{}{}-{}",series, today.year() - 2000, month, date, hour, 45, 45)
+                format!(
+                    "{}-{}{}{}{}{}-{}",
+                    series,
+                    today.year() - 2000,
+                    month,
+                    date,
+                    hour,
+                    30,
+                    30
+                )
             };
 
             ticker
-        } else if minute >= 45  && minute < 60 {
-            
-            let ticker: String = if  hour < 10 {
-                format!("{}-{}{}{}0{}{}-{}",series, today.year() - 2000, month, date, hour, 00, 00)
+        } else if minute >= 30 && minute < 45 {
+            let ticker: String = if hour < 10 {
+                format!(
+                    "{}-{}{}{}0{}{}-{}",
+                    series,
+                    today.year() - 2000,
+                    month,
+                    date,
+                    hour,
+                    45,
+                    45
+                )
             } else {
-                format!("{}-{}{}{}{}{}-{}",series, today.year() - 2000, month, date, hour, 00, 00)
+                format!(
+                    "{}-{}{}{}{}{}-{}",
+                    series,
+                    today.year() - 2000,
+                    month,
+                    date,
+                    hour,
+                    45,
+                    45
+                )
+            };
+
+            ticker
+        } else if minute >= 45 && minute < 60 {
+            hour += 1;
+            let ticker: String = if hour < 10 {
+                format!(
+                    "{}-{}{}{}0{}{}-{}",
+                    series,
+                    today.year() - 2000,
+                    month,
+                    date,
+                    hour,
+                    "00",
+                    "00"
+                )
+            } else {
+                format!(
+                    "{}-{}{}{}{}{}-{}",
+                    series,
+                    today.year() - 2000,
+                    month,
+                    date,
+                    hour,
+                    "00",
+                    "00"
+                )
             };
 
             ticker
         } else {
-            panic!("something went wrong in getting ticker name") 
+            panic!("something went wrong in getting ticker name")
         };
 
         ticker_name
-        
     }
 
-    // gets the month in string format 
+    // gets the month in string format
     fn get_month(date: &chrono::prelude::DateTime<chrono_tz::Tz>) -> &str {
         match date.month() {
             1 => "JAN",
@@ -85,19 +148,18 @@ pub mod ticker_functions {
             10 => "OCT",
             11 => "NOV",
             12 => "DEC",
-            _ => panic!("somehow the month was not one of the 12")
+            _ => panic!("somehow the month was not one of the 12"),
         }
     }
 }
 
+// #[cfg(test)]
+// mod test {
+//     use super::*;
+//     #[test]
+//     fn test() {
+//         let ticker_name =  ticker_functions::get_up_down_ticker("KXBTC15M");
+//         assert_eq!(&ticker_name, "KXBTC15M-26OCT070930-30")
+//     }
 
-#[cfg(test)]
-mod test {
-    use super::*;
-    #[test]
-    fn test() {
-        let ticker_name =  ticker_functions::get_up_down_ticker("KXBTC15M");
-        assert_eq!(&ticker_name, "KXBTC15M-26OCT070930-30")
-    }
-
-}
+// }
