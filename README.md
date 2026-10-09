@@ -1,12 +1,16 @@
-# k_data, KALSHI raw data collection API for POSTGRESQL WRITTEN IN RUST
+# k_data
 
 > The project enables users to gather and store kalshi orderbook, public trades and market ticker updates in a postgresql database. 
+
+> RUST API
+
+> KALSHI raw data collection API for POSTGRESQL WRITTEN IN RUST 
 
 ##  Features
 
 * Fast data and accurate data collection 
 * Kalshi Orderbook, public trades and market ticker, data collection (More to come)
-* Tables used for the data collection ()
+* Tables used for the data collection 
 
 ## QUICK START 
 
@@ -72,7 +76,7 @@ For getting the url please use this format:
 > postgresql://[user[:password]@][netloc][:port][/dbname][?param1=value1&...]
 
 
-### 15 min ticker parser
+### Get 15m up down market ticker from series name
 ```rust
 use k_data::operations::ticker_functions::functions::get_up_down_ticker; // for getting the updown ticker 
 
@@ -83,7 +87,7 @@ fn main() {
 
 ```
 
-### Gathering data for a 15 min up down market
+### Gathering data for a 15m up down market
 
 ```rust
 use k_data::operations::data_functions::kalshi_data::gather_data;  // function to 
