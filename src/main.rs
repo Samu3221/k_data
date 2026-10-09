@@ -8,14 +8,14 @@ use serde_json::json; // creating json objects
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::{connect_async, tungstenite::Message}; // for websockets and websocket messages // for request
 
-use crate::websockets::run_sockets; // websocket connections
+use crate::websockets::get_data; // websocket connections
 
 use k_data::auth::authend::authentication::sign; // for signing and authentication of messages
-use k_data::operations::sql_operations::functions::{
+use k_data::operations::sql_functions::functions::{
     insert_into_market_ticker, insert_into_orderbook_delta, insert_into_orderbook_snapshot,
     insert_into_trades,
 };
-use k_data::operations::ticker_operations::ticker_functions::get_up_down_ticker;
+use k_data::operations::ticker_functions::functions::get_up_down_ticker; // for getting the updown ticker 
 
 use chrono; // for adding timestamp to requests and adding auto adding the right ticker
 
@@ -26,7 +26,8 @@ static URL: &str = "wss://external-api-ws.kalshi.com/trade-api/ws/v2"; // the ur
 #[tokio::main]
 async fn main() {
     let market_ticker: String = get_up_down_ticker("KXBTC15M");
-    run_sockets(&market_ticker, "kalshi").await;
+    let url: String = format!("postgresql://postgres@localhost:5432/{}", "kalshi");
+    get_data(&market_ticker, url).await;
 }
 
 pub mod websockets {
@@ -46,9 +47,8 @@ pub mod websockets {
     }
 
     // make web socket struct where we run the operation out of wif the struct is dropped then we end connection and start a new one
-    pub async fn run_sockets(market_ticker: &str, database_name: &str) {
-        let url: String = format!("postgresql://postgres@localhost:5432/{}", database_name);
-        let mut conn: sqlx::Pool<sqlx::Postgres> = postgres::PgPool::connect(&url).await.unwrap();
+    pub async fn get_data(market_ticker: &str, database_url: String) {
+        let db_conn: sqlx::Pool<sqlx::Postgres> = postgres::PgPool::connect(&database_url).await.unwrap();
 
         let api_key = obtain_api_key();
 
@@ -151,17 +151,17 @@ pub mod websockets {
                 let message_type: &serde_json::Value = &parsed_message["type"];
                 let parsed_msg = &parsed_message["msg"];
                 match message_type.as_str() {
-                    Some("trade") => {
-                        println!("trade {parsed_msg}")
-                    }
-                    Some("ticker") => {
-                        println!("ticker {parsed_msg}")
-                    }
-                    Some("orderbook_delta") => {
-                        println!("delta {parsed_msg}")
-                    }
+                    Some("trade") => insert_into_trades(parsed_msg, &db_conn).await.unwrap(),
+                    Some("ticker") => insert_into_market_ticker(parsed_msg, &db_conn)
+                        .await
+                        .unwrap(),
+                    Some("orderbook_delta") => insert_into_orderbook_delta(parsed_msg, &db_conn)
+                        .await
+                        .unwrap(),
                     Some("orderbook_snapshot") => {
-                        println!("{parsed_msg}")
+                        insert_into_orderbook_snapshot(parsed_msg, &db_conn)
+                            .await
+                            .unwrap()
                     }
                     _ => (),
                 }
@@ -176,7 +176,8 @@ mod tests {
     #[tokio::main]
     #[test]
     async fn testy() {
-        let market_ticker: String = get_up_down_ticker("KXBTC15M");
-        websockets::run_sockets(&market_ticker, "kalshi").await;
+        let market_ticker: String = get_up_down_ticker("KXBTC15M"); // insert the series 
+        let url: String = format!("postgresql://postgres@localhost:5432/{}", "kalshi");
+        websockets::get_data(&market_ticker, url).await;
     }
 }

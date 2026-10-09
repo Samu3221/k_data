@@ -1,2 +1,2 @@
-pub mod sql_operations;
-pub mod ticker_operations;
+pub mod sql_functions; // for sql o
+pub mod ticker_functions;

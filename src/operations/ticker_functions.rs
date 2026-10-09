@@ -3,7 +3,7 @@ use chrono::Utc;
 use chrono::{Datelike, Timelike};
 use chrono_tz::America::New_York;
 
-pub mod ticker_functions {
+pub mod functions {
 
     use super::*;
 
@@ -153,13 +153,3 @@ pub mod ticker_functions {
     }
 }
 
-// #[cfg(test)]
-// mod test {
-//     use super::*;
-//     #[test]
-//     fn test() {
-//         let ticker_name =  ticker_functions::get_up_down_ticker("KXBTC15M");
-//         assert_eq!(&ticker_name, "KXBTC15M-26OCT070930-30")
-//     }
-
-// }
