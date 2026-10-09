@@ -1,5 +1,7 @@
 use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
 use rand_core::OsRng;
+
+use std::env;
 use std::fs;
 
 use rsa::{
@@ -15,7 +17,23 @@ pub mod authentication {
 
     use super::*;
 
-    pub(crate) fn sign(secret_key_path: &str, timestamp_ms: u64, method: &str, path: &str) -> String {
+    pub fn obtain_api_key(api_key_env_name: &str) -> String {
+        // function for obtaining the api keys get called every time to not let them persist in memory
+        dotenv::dotenv().ok();
+        let api_key: String = match env::var(api_key_env_name) {
+            Ok(key) => key,
+            Err(e) => panic!("Program was unable to obtain API key from .env!!!: {e}"),
+        };
+
+        api_key // returning the api key
+    }
+
+    pub(crate) fn sign(
+        secret_key_path: &str,
+        timestamp_ms: u64,
+        method: &str,
+        path: &str,
+    ) -> String {
         // getting the secret key from the file
         let secret_key_pem = match fs::read_to_string(secret_key_path) {
             Ok(content) => content,

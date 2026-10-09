@@ -4,7 +4,11 @@
 
 > RUST API
 
-> KALSHI raw data collection API for POSTGRESQL WRITTEN IN RUST 
+> Kalshi raw data collection API for POSTGRESQL WRITTEN IN RUST 
+
+# !!! Disclaimer 
+
+The crate currently only works wit RSA created SECRET_KEYS. THESE 
 
 ##  Features
 
@@ -90,15 +94,18 @@ fn main() {
 ### Gathering data for a 15m up down market
 
 ```rust
-use k_data::operations::data_functions::kalshi_data::gather_data;  // function to 
-use k_data::operations::ticker_functions::functions::get_up_down_ticker; // for getting the updown ticker 
+use crate::operations::data_functions::kalshi_data::gather_data;  // function to 
+use crate::operations::ticker_functions::functions::get_up_down_ticker; // for getting the updown ticker 
+use crate::auth::authend::authentication::obtain_api_key; 
 
 #[tokio::main]
-async fn start_gathering_data() {
-    let market_ticker: String = get_up_down_ticker("KXBTC15M"); // insert the series // in this case the  BTC 15M up down market
-    let url: String = format!("postgresql://postgres@localhost:5432/{}", "kalshi_data"); // database is named 'kalshi_data'
-    gather_data(&market_ticker, url,"secret_key").await; // begins uploading the data to the DATABASE /
+pub async fn start_gathering_data() {
+    let market_ticker: String = get_up_down_ticker("KXBTC15M"); // insert the series 
+    let db_url: String = format!("postgresql://postgres@localhost:5432/{}", "kalshi_data"); // database is named 'kalshi_data'
+    let api_key: String = obtain_api_key("KALSHI_API_KEY_ENV_NAME"); // .env name where api lies or just input the api key directly
+    gather_data(&market_ticker, db_url, &api_key, "prod2.txt").await; // BEGINS UPLOADING THE DATA TO THE DB
 }
+
 
 start_gathering_data().await; 
 ```

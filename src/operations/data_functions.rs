@@ -25,28 +25,30 @@ pub mod kalshi_data {
 
     use super::*; // imports all modules above 
 
-    fn obtain_api_key() -> String {
-        // function for obtaining the api keys get called every time to not let them persist in memory
-        dotenv::dotenv().ok();
-        let api_key: String = match env::var("KALSHI_API_KEY") {
-            Ok(key) => key,
-            Err(e) => panic!("Program was unable to obtain API key from .env!!!: {e}"),
-        };
-
-        api_key // returning the api key
-    }
-
     // make web socket struct where we run the operation out of wif the struct is dropped then we end connection and start a new one
-    pub async fn gather_data(market_ticker: &str, database_url: String, secret_key_path: &str) {
-        let db_conn: sqlx::Pool<sqlx::Postgres> = postgres::PgPool::connect(&database_url).await.unwrap();
-
-        let api_key = obtain_api_key();
+    pub async fn gather_data(
+        market_ticker: &str,
+        database_url: String,
+        api_key: &str,
+        secret_key_path: &str,
+    ) {
+        let db_conn: sqlx::Pool<sqlx::Postgres> =
+            match postgres::PgPool::connect(&database_url).await {
+                Ok(connection) => connection,
+                Err(error) => panic!(" ¨program failed to connect to database: {}", error),
+            };
 
         let timestamp = chrono::DateTime::timestamp_millis(&chrono::Utc::now());
 
         let signature = sign(secret_key_path, timestamp as u64, "GET", "/trade-api/ws/v2");
 
-        let mut request = URL.into_client_request().unwrap();
+        let mut request = match URL.into_client_request() {
+            Ok(request) => request,
+            Err(error) => panic!(
+                "The program failed turning the request url into a client request: {}",
+                error
+            ),
+        };
         request
             .headers_mut()
             .insert("KALSHI-ACCESS-KEY", format!("{}", api_key).parse().unwrap());
@@ -141,17 +143,36 @@ pub mod kalshi_data {
                 let message_type: &serde_json::Value = &parsed_message["type"];
                 let parsed_msg = &parsed_message["msg"];
                 match message_type.as_str() {
-                    Some("trade") => insert_into_trades(parsed_msg, &db_conn).await.unwrap(),
-                    Some("ticker") => insert_into_market_ticker(parsed_msg, &db_conn)
-                        .await
-                        .unwrap(),
-                    Some("orderbook_delta") => insert_into_orderbook_delta(parsed_msg, &db_conn)
-                        .await
-                        .unwrap(),
+                    Some("trade") => match insert_into_trades(parsed_msg, &db_conn).await {
+                        Ok(_) => (),
+                        Err(error) => {
+                            panic!("The Program failed to insert into trades TABLE: {}", error)
+                        }
+                    },
+                    Some("ticker") => match insert_into_market_ticker(parsed_msg, &db_conn).await {
+                        Ok(_) => (),
+                        Err(error) => panic!(
+                            "The Program failed to insert into market_ticker TABLE: {}",
+                            error
+                        ),
+                    },
+                    Some("orderbook_delta") => {
+                        match insert_into_orderbook_delta(parsed_msg, &db_conn).await {
+                            Ok(_) => (),
+                            Err(error) => panic!(
+                                "The Program failed to insert into orderbook_delta TABLE: {}",
+                                error
+                            ),
+                        }
+                    }
                     Some("orderbook_snapshot") => {
-                        insert_into_orderbook_snapshot(parsed_msg, &db_conn)
-                            .await
-                            .unwrap()
+                        match insert_into_orderbook_snapshot(parsed_msg, &db_conn).await {
+                            Ok(_) => (),
+                            Err(error) => panic!(
+                                "The Program failed to insert into orderbook_snapshot TABLE: {}",
+                                error
+                            ),
+                        }
                     }
                     _ => (),
                 }
@@ -160,10 +181,10 @@ pub mod kalshi_data {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use crate::operations::ticker_functions::functions::get_up_down_ticker; // for getting the updown ticker 
+    use crate::auth::authend::authentication::obtain_api_key;
+    use crate::operations::ticker_functions::functions::get_up_down_ticker; // for getting the updown ticker
 
     use super::*;
     #[tokio::main]
@@ -171,6 +192,7 @@ mod tests {
     async fn testy() {
         let market_ticker: String = get_up_down_ticker("KXBTC15M"); // insert the series 
         let url: String = format!("postgresql://postgres@localhost:5432/{}", "kalshi");
-        kalshi_data::gather_data(&market_ticker, url,"prod2.txt").await;
+        let api_key: String = obtain_api_key("KALSHI_API_KEY");
+        kalshi_data::gather_data(&market_ticker, url, &api_key, "prod2.txt").await;
     }
 }
