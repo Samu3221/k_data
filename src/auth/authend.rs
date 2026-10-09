@@ -15,7 +15,7 @@ pub mod authentication {
 
     use super::*;
 
-    pub fn sign(secret_key_path: &str, timestamp_ms: u64, method: &str, path: &str) -> String {
+    pub(crate) fn sign(secret_key_path: &str, timestamp_ms: u64, method: &str, path: &str) -> String {
         // getting the secret key from the file
         let secret_key_pem = match fs::read_to_string(secret_key_path) {
             Ok(content) => content,

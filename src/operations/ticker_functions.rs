@@ -6,9 +6,9 @@ use chrono_tz::America::New_York;
 pub mod functions {
 
     use super::*;
-
+    
+    // returns the current active ticker for a updown market
     pub fn get_up_down_ticker(series: &str) -> String {
-        // let today: chrono::prelude::DateTime<chrono::prelude::Local> = Utc::now().with_timezone(&New_York); // chrono::local
 
         let today: chrono::prelude::DateTime<chrono_tz::Tz> = Utc::now().with_timezone(&New_York);
 

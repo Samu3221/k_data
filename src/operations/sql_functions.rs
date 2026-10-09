@@ -6,7 +6,7 @@ pub mod functions {
 
     use super::*;
 
-    pub async fn insert_into_trades(
+    pub(crate) async fn insert_into_trades(
         values: &serde_json::Value,
         database_pool: &sqlx::PgPool,
     ) -> Result<(), Box<dyn Error>> {
@@ -38,7 +38,7 @@ pub mod functions {
         Ok(())
     }
 
-    pub async fn insert_into_orderbook_delta(
+    pub(crate) async fn insert_into_orderbook_delta(
         values: &serde_json::Value,
         database_pool: &sqlx::PgPool,
     ) -> Result<(), Box<dyn Error>> {
@@ -64,7 +64,7 @@ pub mod functions {
         Ok(())
     }
 
-    pub async fn insert_into_market_ticker(
+    pub(crate) async fn insert_into_market_ticker(
         values: &serde_json::Value,
         database_pool: &sqlx::PgPool,
     ) -> Result<(), Box<dyn Error>> {
@@ -92,7 +92,7 @@ pub mod functions {
         Ok(())
     }
 
-    pub async fn insert_into_orderbook_snapshot(
+    pub(crate) async fn insert_into_orderbook_snapshot(
         values: &serde_json::Value,
         database_pool: &sqlx::PgPool,
     ) -> Result<(), Box<dyn Error>> {
